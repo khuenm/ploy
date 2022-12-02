@@ -2,9 +2,9 @@ module Board where  -- do NOT CHANGE export of module
 
 -- IMPORTS HERE
 -- Note: Imports allowed that DO NOT REQUIRE TO CHANGE package.yaml, e.g.:
---       import Data.Chars
-
-
+import Data.Char
+import Data.List.Split
+import Data.Function ((&))
 
 -- #############################################################################
 -- ############# GIVEN IMPLEMENTATION                           ################
@@ -37,8 +37,20 @@ instance Eq Cell where
 -- #############################################################################
 
 validateFEN :: String -> Bool
-validateFEN _ = True
+validateFEN [] = False
+validateFEN xs = (length rows == 9) && (rows & map validateFENRowContent & foldr (&&) True)
+    where rows = splitOn "/" xs
 
+validateFENRowContent :: String -> Bool
+validateFENRowContent [] = False
+validateFENRowContent xs = (length cells == 9) && (cells & map validateFENCellContent & foldr (&&) True)
+    where cells = splitOn "," xs
+
+validateFENCellContent :: String -> Bool
+validateFENCellContent [] = True
+validateFENCellContent [x] = False
+validateFENCellContent (x:xs) = elem x ['b', 'w'] && 1 <= xs_int && xs_int <= 255
+    where xs_int = read xs :: Int
 
 
 -- #############################################################################
@@ -48,8 +60,19 @@ validateFEN _ = True
 -- #############################################################################
 
 buildBoard :: String -> Board
-buildBoard _ = []
+buildBoard xs 
+    | not (validateFEN xs) = error "Input string is not in FEN notation"
+    | otherwise = map (map convertFENCell) cells_list
+    where cells_list = xs & splitOn "/" & map (splitOn ",")
 
+convertFENCell :: String -> Cell
+convertFENCell [] = Empty
+convertFENCell [x] = error "String cell is invalid"
+convertFENCell (x:xs) 
+    | x == 'b' = Piece Black xs_int
+    | x == 'w' = Piece White xs_int
+    | otherwise = error "String cell has to start with either 'b' or 'w'"
+    where xs_int = read xs :: Int
 
 
 -- #############################################################################
@@ -59,4 +82,26 @@ buildBoard _ = []
 -- #############################################################################
 
 line :: Pos -> Pos -> [Pos]
-line _ _ = []
+line (Pos {col=c1, row=r1}) (Pos {col=c2, row=r2}) = 
+    let 
+        col_dist = (ord c2) - (ord c1)
+        row_dist = r2 - r1
+        col_direction = div col_dist (abs col_dist)
+        row_direction = div row_dist (abs row_dist)
+        max_diag = min (abs col_dist) (abs row_dist)
+        move_col = if ((abs col_dist) - max_diag) > 0 then 1 else 0
+        move_row = if ((abs row_dist) - max_diag) > 0 then 1 else 0
+        max_straight = (max (abs col_dist) (abs row_dist)) - max_diag
+    in 
+        [Pos (chr ((ord c1)+i*col_direction)) (r1+i*row_direction) | i <- [0..max_diag]] ++ 
+        [Pos (chr ((ord c2)-i*move_col*col_direction)) (r2-i*move_row*row_direction) | i <- [0..max_straight]]  
+        
+    -- | col_dist <= 0 && row_dist >= 0 = [Pos (chr (ord c1)-i) (r1+i) | i <- [0..max_diag]] ++ [Pos c2 (r1+i) | i <- [0..max_straight]] -- upper left
+    -- | col_dist <= 0 && row_dist < 0 = [Pos (chr (ord c1)-i) (r1-i) | i <- [0..max_diag]] ++ [Pos c2 (r1-i) | i <- [0..max_straight]] -- lower left
+    -- | col_dist >= && row_dist >= 0 = [Pos (chr (ord c1)+i) (r1+i) | i <- [0..max_diag]] ++ [Pos c2 (r1+i) | i <- [0..max_straight]] -- upper right
+    -- | otherwise = [Pos (chr (ord c1)+i) (r1-i) | i <- [0..max_diag]] ++ [Pos c2 (r1-i) | i <- [0..max_straight]] -- lower right
+    -- where
+    --     col_dist = ord c2 - ord c1
+    --     row_dist = r2 - r1
+    --     max_diag = min (abs col_dist) (abs row_dist)
+    --     max_straight = (max (abs col_dist) (abs row_dist)) - max_diag
