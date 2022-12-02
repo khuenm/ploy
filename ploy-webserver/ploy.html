@@ -1,0 +1,272 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <title>SWTPP Game Server</title>
+  <meta name="viewport" content="width=980px, initial-scale=1">
+  <link rel="stylesheet" href="css/normalize-2.1.2.min.css" />
+  <link rel="stylesheet" href="css/site2.css" />
+  <link rel="stylesheet" href="css/chessboard.css" />
+  <script src="js/json3.min.js"></script>
+  <script src="js/jquery-1.10.1.min.js"></script>
+  <script src="js/prettify.js"></script>
+  <script src="js/ployboard.js"></script>
+  
+  <style>
+  .slider {
+    width: 540px;
+    height: 20px;
+    background: #d3d3d3;
+    outline: none;
+    opacity: 0.7;
+    -webkit-transition: .2s;
+    transition: opacity .2s;
+}
+  
+  
+  </style>
+</head>
+<body>
+
+<!-- canvas dummy field (invisible) to build figures from (required for dsboardjs) -->
+<canvas id="mycanvas" width="69" height="69" style="border:4px solid #000000;display:none"></canvas> 
+
+<table>
+<tr><td width="50%">
+<h1>SWTPP Game Server: Ploy</h1>
+<h3><a href="/">Go Back to Home</a></h3>
+</td>
+<td/>
+<td>
+</td></tr>
+<tr>
+<td width="45%">
+<br>Black Player: <div id="black"></div><br>White Player: <div id="white"></div><br>Status:<div id="status"></div><br><div id="info"></div><br>
+</td>
+<td width="5%">
+	
+
+</td>
+<td><div id="ployboard" style="background-image: url(img/background.png); background-size: 635px 635px; height: 635px; width: 635px;" ></div> 
+<br>
+<div>Rotate clockwise: </div>
+<input id="slider" class="slider" type="range" min="0" max="7" value="0" step="1"/><br>
+<span id="sliderval"></span>
+</td>
+
+</tr>
+</table> 
+
+<script>
+
+var board;
+var gameID;
+var slider = document.getElementById("slider");
+var sliderval = document.getElementById("sliderval");
+
+function isTouchDevice() {
+  return ('ontouchstart' in document.documentElement);
+}
+
+
+
+/*
+ * sends any message with given params to servlet and returns response
+ */
+function sendGETMessage(params, callback) {
+	var request = new XMLHttpRequest();
+
+	request.open('GET', '/logic?' + params, false);  // `false` makes the request synchronous
+	request.onreadystatechange = callback
+	
+	request.send(params);
+	
+	return request.response
+}
+
+// reload display to show new data
+function update() {
+	window.location.href = "/ploy?get";
+}
+
+function giveUp() {
+	sendGETMessage('usecase=giveUp&gameID=' + gameID, update);
+}
+
+function callDraw() {
+	sendGETMessage('usecase=callDraw&gameID=' + gameID, update);
+}
+
+function moveRequest(source, target) {
+	sendGETMessage('usecase=trymove-' + source + '-' + target + '-' + slider.value, update);
+}
+
+function updateSlider() {
+	var val = slider.value;
+	
+	if (val == 1)  sliderval.innerHTML = 'rotate ' + slider.value + " step(s)";
+	else sliderval.innerHTML = 'move ' + slider.value + " steps";
+}
+
+$(document).ready(function() {
+	updateSlider();
+	
+	slider.oninput = updateSlider;
+	
+	// parse request parameters for game ID or command 
+	var parameter = window.location.search.replace( "?", "" ); // will return the GET parameter 
+	var values = parameter.split("=");
+	var request = new XMLHttpRequest();
+	var params;
+
+	if (values[0] == 'newgame') {
+		switch (values[1]) {
+			case "validation":
+				params = 'usecase=start-validation'
+				break;
+			case "bot":
+				params = 'usecase=start-bot'
+				break;
+			default:
+				params = 'usecase=start-novalidation'
+				break;
+		}
+	} else {
+		params = "get"
+	}
+
+	request.open('GET', '/logic?' + params, false);  // `false` makes the request synchronous
+	request.onreadystatechange =  function() {
+		//alert(this.responseText);
+		if (this.responseText != '') {
+			// display data of joined game
+			var gameDataJSON = jQuery.parseJSON(this.responseText);			
+			displayBoard(gameDataJSON);
+		} else {
+			// something went wrong - back to index
+			// TODO: include again: window.location.href = "/";
+			return;
+		}
+	  
+		if (!gameDataJSON.yourturn && !(gameDataJSON.status =='Finished')) {
+			// update display after 5s
+			setTimeout(update, 5000);
+		}
+	}
+	request.send(params);
+
+	/*	
+	if (values[0] == 'haskell') {
+		// start new game against haskell bot
+		params = 'usecase=startgame&&type=ploy&bots=haskell';
+	} else if (values.length == 2) {
+		// display data of game with id gameID
+		gameID = values[1];
+		params = 'usecase=getgamedata&gameID=' + gameID;
+	} else if (values[0] == 'start'){
+		// start new game without bots
+		params = 'usecase=startgame&type=ploy&bots=';
+	} else if (values[0] == 'join'){
+		// join any existing game
+		params = 'usecase=joingame&type=ploy';
+	} else {
+		params = ''
+	}
+	
+	request.open('GET', '/logic?' + params, false);  // `false` makes the request synchronous
+	request.onreadystatechange =  function() {
+		//alert(this.responseText);
+		if (this.responseText == 'nogame') {
+			// no waiting games- back to main
+			alert("No games waiting");
+			window.location.href = "/";
+		} else if (this.responseText != '') {
+			// display data of joined game
+			var gameDataJSON = jQuery.parseJSON(this.responseText);
+			
+			$('#username').html(gameDataJSON.requestedby);
+			displayBoard(gameDataJSON);
+			
+
+		} else {
+			// something went wrong - back to index
+			window.location.href = "/";
+			return;
+		}
+	  
+		if (!gameDataJSON.yourturn && !(gameDataJSON.status =='Finished')) {
+			// update display after 5s
+			setTimeout(update, 5000);
+		}
+	}
+	
+	request.send(params);*/
+});
+
+/*
+ * updates html display with all data delivered in json gameData
+ */
+function displayBoard(gameData) {		
+	var myturn = false;
+	// update status fields
+	$('#status').html(gameData.status);
+	$('#black').html(gameData.players[0]);
+	$('#white').html(gameData.players[1]);
+	$('#info').html(gameData.info);
+	if (gameData.status != 'Finished') {
+		if (gameData.yourturn) {
+			myturn = true
+		}
+	}
+
+	console.log("FEN: " + gameData.board)
+	console.log("Board: " + gameData.construct)
+	
+	if (myturn) {
+		// if it's my turn- enable drag and drop of figures 
+		var onDrop = function(source, target, piece, newPos, oldPos, orientation) {
+				moveRequest(source, target);
+			  };
+		
+		// create active board
+		board = new Board('ployboard', {
+		    draggable: true,
+		    dropOffBoard: 'snapback',
+		    sparePieces: false, 
+		    onDrop: onDrop,
+		    showErrors: 'alert',
+		    position: gameData.board
+		  });
+		
+		slider.disabled = false;
+	} else {
+		// not my turn: create passive board
+		board = new Board('ployboard', {
+		    draggable: false,
+		    dropOffBoard: 'snapback',
+		    sparePieces: false,
+		    showErrors: 'alert',
+		    position: gameData.board
+		});
+		slider.disabled = true;
+	}
+	
+  prettyPrint();
+
+  // prevent "browser drag" of the black king
+  //$('#hero img').on('mousedown', function(e) { e.preventDefault(); });
+  $('#hero img').on('mousedown', function(e) { e.preventDefault(); });
+
+  // prevent hover problems on touch devices
+  if (isTouchDevice() === true) {
+    $('#start').removeClass('hover-effect');
+  }
+}
+
+</script>
+</body>
+
+</html>
+
+
