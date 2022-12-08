@@ -4,7 +4,7 @@ import Board
 
 -- IMPORTS HERE
 -- Note: Imports allowed that DO NOT REQUIRE TO CHANGE package.yaml, e.g.:
---       import Data.Char
+import Data.Char
 import Data.Bits ( (.&.), (.|.), shift )
 import Data.Function ((&))
 
@@ -35,12 +35,12 @@ rotate o tr = (.&.) ((.|.) (shift o tr) (shift o (tr-8))) 255
 -- #############################################################################
 
 gameFinished :: Board -> Bool
-gameFinished b = b & foldr (++) [] & splitBlackWhite & map gameFinishedSingleTeam & foldr (||) False
+gameFinished b = b & splitBlackWhite & map gameFinishedSingleTeam & foldr (||) False
 
-splitBlackWhite :: [Cell] -> [[Int]]
+splitBlackWhite :: Board -> [[Int]]
 splitBlackWhite b = [fst blackWhite, snd blackWhite]
     where
-    blackWhite = _splitBlackWhite b
+    blackWhite = _splitBlackWhite (foldr (++) [] b) -- Flatten Board to [Cell]
     _splitBlackWhite :: [Cell] -> ([Int],[Int])
     _splitBlackWhite [] = ([],[])
     _splitBlackWhite (Empty : xb) = (fst (_splitBlackWhite xb), snd (_splitBlackWhite xb))
@@ -67,6 +67,7 @@ toBinary n = _toBinary n
     _toBinary 0 = []
     _toBinary n = mod n 2 : _toBinary (div n 2)
 
+
 -- #############################################################################
 -- ################### isValidMove :: Board -> Move -> Bool ####################
 -- ################### - 5 Functional Points                ####################
@@ -74,9 +75,11 @@ toBinary n = _toBinary n
 -- #############################################################################
 
 isValidMove :: Board -> Move -> Bool
-isValidMove _ _ = False
+isValidMove b (Move {start=p1, target=p2, turn=_}) = line p1 p2 & tail & isValidPos b
 
-
+isValidPos :: Board -> [Pos] -> Bool
+isValidPos _ [] = True -- No move since start and target is the same
+isValidPos b ((Pos {col=c, row=r}) : xs) = (b!!r!!((ord c)-97) == Empty) && (isValidPos b xs)
 
 -- #############################################################################
 -- ################### possibleMoves :: Pos -> Cell -> [Move] ##################
