@@ -6,6 +6,7 @@ import Board
 -- Note: Imports allowed that DO NOT REQUIRE TO CHANGE package.yaml, e.g.:
 --       import Data.Char
 import Data.Bits ( (.&.), (.|.), shift )
+import Data.Function ((&))
 
 
 
@@ -34,9 +35,37 @@ rotate o tr = (.&.) ((.|.) (shift o tr) (shift o (tr-8))) 255
 -- #############################################################################
 
 gameFinished :: Board -> Bool
-gameFinished _ = False
+gameFinished b = b & foldr (++) [] & splitBlackWhite & map gameFinishedSingleTeam & foldr (||) False
 
+splitBlackWhite :: [Cell] -> [[Int]]
+splitBlackWhite b = [fst blackWhite, snd blackWhite]
+    where
+    blackWhite = _splitBlackWhite b
+    _splitBlackWhite :: [Cell] -> ([Int],[Int])
+    _splitBlackWhite [] = ([],[])
+    _splitBlackWhite (Empty : xb) = (fst (_splitBlackWhite xb), snd (_splitBlackWhite xb))
+    _splitBlackWhite ((Piece Black i) : xb) = (i : fst (_splitBlackWhite xb), snd (_splitBlackWhite xb))
+    _splitBlackWhite ((Piece White i) : xb) = (fst (_splitBlackWhite xb), i : snd (_splitBlackWhite xb))
 
+gameFinishedSingleTeam :: [Int] -> Bool
+gameFinishedSingleTeam [] = True
+gameFinishedSingleTeam xs = xs & map isCommander & _gameFinishedSingleTeam
+    where
+    _gameFinishedSingleTeam :: [Bool] -> Bool
+    _gameFinishedSingleTeam [] = True
+    _gameFinishedSingleTeam xs = ((length xs == 1) && head xs) || not (foldr (||) False xs)
+
+isCommander :: Int -> Bool
+isCommander n
+    | n < 1 || n > 255 = error "Number has to be between 1 and 255 to be converted to binary number"
+    | otherwise = sum (toBinary n) == 4
+
+toBinary :: Int -> [Int]
+toBinary 0 = [0]
+toBinary n = _toBinary n
+    where
+    _toBinary 0 = []
+    _toBinary n = mod n 2 : _toBinary (div n 2)
 
 -- #############################################################################
 -- ################### isValidMove :: Board -> Move -> Bool ####################
