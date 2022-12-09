@@ -30,6 +30,9 @@ instance Eq Cell where
   (==) (Piece p1 i1) (Piece p2 i2) = p1 == p2 && i1 == i2 
   (==) _ _ = False
 
+-- instance Show Pos where
+--   show Pos {col=c, row=r} = c : show r
+
 -- #############################################################################
 -- ################# IMPLEMENT validateFEN :: String -> Bool ###################
 -- ################## - 2 Functional Points                  ###################
@@ -84,6 +87,7 @@ convertFENCell (x:xs)
 line :: Pos -> Pos -> [Pos]
 line (Pos {col=c1, row=r1}) (Pos {col=c2, row=r2})
     | c1 == c2 && r1 == r2 = [Pos {col=c1, row=r1}]
+    -- | c1 == c2 = []
     | otherwise =
         let 
             col_dist = (ord c2) - (ord c1)
@@ -95,5 +99,6 @@ line (Pos {col=c1, row=r1}) (Pos {col=c2, row=r2})
             move_row = if ((abs row_dist) - max_diag) > 0 then 1 else 0
             max_straight = (max (abs col_dist) (abs row_dist)) - max_diag
         in 
-            [Pos (chr ((ord c1)+i*col_direction)) (r1+i*row_direction) | i <- [0..max_diag]] ++ 
-            [Pos (chr ((ord c2)-i*move_col*col_direction)) (r2-i*move_row*row_direction) | i <- [0..max_straight]]  
+            Pos {col=c1, row=r1} :
+            [Pos (chr ((ord c1)+i*col_direction)) (r1+i*row_direction) | i <- [1..max_diag]] ++ 
+            [Pos (chr ((ord c2)-i*move_col*col_direction)) (r2-i*move_row*row_direction) | i <- [1..max_straight]]  
