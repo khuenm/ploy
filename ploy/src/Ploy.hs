@@ -62,10 +62,10 @@ gameFinishedSingleTeam xs = xs & map isCommander & _gameFinishedSingleTeam
     _gameFinishedSingleTeam [] = True
     _gameFinishedSingleTeam xs = ((length xs == 1) && head xs) || not (foldr (||) False xs)
 
-isCommander :: Int -> Bool
-isCommander n
-    | n < 1 || n > 255 = error "Number has to be between 1 and 255 to be converted to binary number"
-    | otherwise = sum (toBinary n) == 4
+    isCommander :: Int -> Bool
+    isCommander n
+        | n < 1 || n > 255 = error "Number has to be between 1 and 255 to be converted to binary number"
+        | otherwise = sum (toBinary n) == 4
 
 
 -- #############################################################################
@@ -147,12 +147,10 @@ listMoves b player
     where
     generatePosCellTuple b = [(Pos c r, b!!(9-r)!!((ord c)-97)) | r <- [1..9], c <- ['a'..'i']]
 
-isPlayer :: Player -> Cell -> Bool
-isPlayer _ Empty = False
-isPlayer player (Piece color _) = player == color
+    isPlayer :: Player -> Cell -> Bool
+    isPlayer _ Empty = False
+    isPlayer player (Piece color _) = player == color
 
-isValidEndPos :: Board -> Player -> Move -> Bool
-isValidEndPos b player (Move {start=_, target=p2, turn=_}) = not (isPlayer player (getCell b p2)) 
+    isValidEndPos :: Board -> Player -> Move -> Bool
+    isValidEndPos b player (Move {start=_, target=p2, turn=_}) = not (isPlayer player (getCell b p2)) 
 
--- getEndPosFromMove :: Move -> Pos
--- getEndPosFromMove (Move {start=_, target=p, turn=_}) = p
