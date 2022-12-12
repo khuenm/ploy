@@ -74,17 +74,50 @@ gameFinishedSingleTeam xs = xs & map isCommander & _gameFinishedSingleTeam
 -- ################### - 1 Coverage Point                   ####################
 -- #############################################################################
 
--- isValidMove only checks if the path between start and target pos is empty
--- target pos is not considered since there is no information about which player is playing
 isValidMove :: Board -> Move -> Bool
-isValidMove b (Move {start=p1, target=p2, turn=_}) 
+isValidMove b (Move {start=p1, target=p2, turn=t}) 
     | p1 == p2 = True
-    | otherwise = line p1 p2 & tail & init & isValidPos b
+    | otherwise = validatePath b (paths & tail & init) &&
+                  validateEndPos cell1 cell2 &&
+                  validateFirstMove b p1 (paths!!1) &&
+                  validateNumMove cell1 ((length paths)-1) t
+    where
+    paths = line p1 p2
+    cell1 = getCell b p1
+    cell2 = getCell b p2
 
-isValidPos :: Board -> [Pos] -> Bool
-isValidPos _ [] = True -- No move since start and target is the same
-isValidPos b (pos : xs) = (getCell b pos == Empty) && (isValidPos b xs)
+    -- checks for if the path between start and target is empty
+    validatePath :: Board -> [Pos] -> Bool
+    validatePath b positions = (positions & map (getCell b) & filter (\p -> p /= Empty)) == []
 
+    -- checks for if the target cell is empty or occupied by opponent
+    validateEndPos :: Cell -> Cell -> Bool
+    validateEndPos Empty _ = error "First position cannot be empty"
+    validateEndPos _ Empty = True
+    validateEndPos (Piece player1 _) (Piece player2 _) = player1 /= player2
+
+    -- checks for if the move direction is allowed by the start cell
+    validateFirstMove :: Board -> Pos -> Pos -> Bool
+    validateFirstMove b (Pos {col=c1, row=r1}) (Pos {col=c2, row=r2}) = length cell1BitPos > directionIdx && cell1BitPos!!directionIdx == 1
+        where
+        relativeMoveAround = [[7,0,1],[6,-1,2],[5,4,3]]
+        Piece _ num = getCell b (Pos {col=c1, row=r1})
+        cell1BitPos = toBinary num
+        directionIdx = relativeMoveAround!!((signum (r2-r1)+1))!!((signum (ord c2 - ord c1))+1)
+
+    -- checks for if the number of movements is allowed by the start cell
+    validateNumMove :: Cell -> Int -> Int -> Bool
+    validateNumMove Empty _ _ = error "First position cannot be empty"
+    validateNumMove (Piece _ i) numMoves numTurn = numMoves < (cellBitPos & sum & getMaxNumMoves) && 
+                                             ((sum cellBitPos >= 1 && numTurn == 0) || sum cellBitPos == 1)
+        where
+        cellBitPos = toBinary i
+        
+-- get the maxinum number of fields a piece can move based on its number of possible movement directions
+getMaxNumMoves :: Int -> Int
+getMaxNumMoves n = (div n 4) + (mod n 4)
+
+-- get the corresponding cell in a board at a certain position
 getCell :: Board -> Pos -> Cell
 getCell b (Pos {col=c, row=r}) = b!!(9-r)!!((ord c)-97)
 
@@ -143,14 +176,14 @@ listMoves b player
                    & map (uncurry possibleMoves)
                    & foldr (++) []
                    & filter (isValidMove b)
-                   & filter (isValidEndPos b player)
+                   -- & filter (isValidEndPos b player)
     where
     generatePosCellTuple b = [(Pos c r, b!!(9-r)!!((ord c)-97)) | r <- [1..9], c <- ['a'..'i']]
 
-    isPlayer :: Player -> Cell -> Bool
-    isPlayer _ Empty = False
-    isPlayer player (Piece color _) = player == color
+isPlayer :: Player -> Cell -> Bool
+isPlayer _ Empty = False
+isPlayer player (Piece color _) = player == color
 
-    isValidEndPos :: Board -> Player -> Move -> Bool
-    isValidEndPos b player (Move {start=_, target=p2, turn=_}) = not (isPlayer player (getCell b p2)) 
+isValidEndPos :: Board -> Player -> Move -> Bool
+isValidEndPos b player (Move {start=_, target=p2, turn=_}) = not (isPlayer player (getCell b p2)) 
 
