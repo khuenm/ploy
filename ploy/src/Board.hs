@@ -66,16 +66,14 @@ buildBoard :: String -> Board
 buildBoard xs 
     | not (validateFEN xs) = error "Input string is not in FEN notation"
     | otherwise = map (map convertFENCell) cells_list
-    where cells_list = xs & splitOn "/" & map (splitOn ",")
-
-convertFENCell :: String -> Cell
-convertFENCell [] = Empty
-convertFENCell [_] = error "String cell is invalid"
-convertFENCell (x:xs) 
-    | x == 'b' = Piece Black xs_int
-    | x == 'w' = Piece White xs_int
-    | otherwise = error "String cell has to start with either 'b' or 'w'"
-    where xs_int = read xs :: Int
+    where 
+        cells_list = xs & splitOn "/" & map (splitOn ",")
+        convertFENCell :: String -> Cell
+        convertFENCell [] = Empty
+        convertFENCell (x:xs) 
+            | x == 'b' = Piece Black xs_int
+            | x == 'w' = Piece White xs_int
+            where xs_int = read xs :: Int
 
 
 -- #############################################################################
@@ -87,18 +85,11 @@ convertFENCell (x:xs)
 line :: Pos -> Pos -> [Pos]
 line (Pos {col=c1, row=r1}) (Pos {col=c2, row=r2})
     | c1 == c2 && r1 == r2 = [Pos {col=c1, row=r1}]
-    -- | c1 == c2 = []
-    | otherwise =
-        let 
-            col_dist = (ord c2) - (ord c1)
-            row_dist = r2 - r1
-            col_direction = signum col_dist
-            row_direction = signum row_dist
-            max_diag = min (abs col_dist) (abs row_dist)
-            move_col = if ((abs col_dist) - max_diag) > 0 then 1 else 0
-            move_row = if ((abs row_dist) - max_diag) > 0 then 1 else 0
-            max_straight = (max (abs col_dist) (abs row_dist)) - max_diag
-        in 
-            Pos {col=c1, row=r1} :
-            [Pos (chr ((ord c1)+i*col_direction)) (r1+i*row_direction) | i <- [1..max_diag]] ++ 
-            [Pos (chr ((ord c2)-i*move_col*col_direction)) (r2-i*move_row*row_direction) | i <- [1..max_straight]]  
+    | r2 == r1 = [Pos {col=chr ((ord c1)+i*col_direction), row=r1} | i <- [0..(abs col_dist)]]
+    | ord c1 == ord c2 = [Pos {col=c1, row=r1+i*row_direction} | i <- [0..(abs row_dist)]]
+    | otherwise = [Pos {col=chr ((ord c1)+i*col_direction), row=r1+i*row_direction} | i <- [0..(abs col_dist)]]
+    where
+        col_dist = (ord c2) - (ord c1)
+        row_dist = r2 - r1
+        col_direction = signum col_dist
+        row_direction = signum row_dist
