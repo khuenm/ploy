@@ -84,12 +84,16 @@ buildBoard xs
 
 line :: Pos -> Pos -> [Pos]
 line (Pos {col=c1, row=r1}) (Pos {col=c2, row=r2})
+    | not (validPos c1 r1) || not (validPos c2 r2) = error "Input positions are not valid"
     | c1 == c2 && r1 == r2 = [Pos {col=c1, row=r1}]
     | r2 == r1 = [Pos {col=chr ((ord c1)+i*col_direction), row=r1} | i <- [0..(abs col_dist)]]
     | ord c1 == ord c2 = [Pos {col=c1, row=r1+i*row_direction} | i <- [0..(abs row_dist)]]
-    | otherwise = [Pos {col=chr ((ord c1)+i*col_direction), row=r1+i*row_direction} | i <- [0..(abs col_dist)]]
+    | abs (ord c2 - ord c1) == abs (r2-r1) = [Pos {col=chr ((ord c1)+i*col_direction), row=r1+i*row_direction} | i <- [0..(abs col_dist)]]
+    | otherwise = error "Input positions are not on a horizontal, vertical or diagonal line"
     where
         col_dist = (ord c2) - (ord c1)
         row_dist = r2 - r1
         col_direction = signum col_dist
         row_direction = signum row_dist
+        validPos :: Char -> Int -> Bool
+        validPos c i = c >= 'a' && c <= 'z' && i <= 9 && i >= 1
