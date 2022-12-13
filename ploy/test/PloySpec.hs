@@ -8,7 +8,7 @@ import Control.Exception.Base
 import Board 
 import Ploy
 
-whitePart, blackPart :: Board
+whitePart, blackPart :: Board -- same as start board, but white commander at a9 and black commander at a3
 whitePart = [[Piece White 170,Piece White 84,Piece White 41,Piece White 56,Empty,Piece White 56,Piece White 41,Piece White 84,Empty],[Empty,Empty,Piece White 24,Piece White 40,Piece White 17,Piece White 40,Piece White 48,Empty,Empty],[Empty,Empty,Empty,Piece White 16,Piece White 16,Piece White 16,Empty,Empty,Empty]]
 blackPart = [[Piece Black 170,Empty,Empty,Piece Black 1,Piece Black 1,Piece Black 1,Empty,Empty,Empty],[Empty,Empty,Piece Black 3,Piece Black 130,Piece Black 17,Piece Black 130,Piece Black 129,Empty,Empty],[Empty,Piece Black 69,Piece Black 146,Piece Black 131,Empty,Piece Black 131,Piece Black 146,Piece Black 69,Empty]]
 
@@ -107,3 +107,12 @@ spec = do
                                                                 [Move {start=Pos 'a' 2, target=Pos 'a' 2, turn=i} | i <- [1..7]]
           length (possibleMoves (Pos 'c' 2) (Piece White 41)) `shouldBe` 12
           length (possibleMoves (Pos 'e' 9) (Piece White 170)) `shouldBe` 6 
+  
+  -- #################### listMoves #########################
+  describe "Module Ploy: listMoves ..." $ do
+      it "List moves for finished game" $ do
+          listMoves noWhiteCommanderBoard White `shouldBe` []
+
+      it "List moves for black/white in the begin board" $ do
+          length (listMoves unfinishedBoard White) `shouldBe` 146
+          length (listMoves unfinishedBoard Black) `shouldBe` 147 -- 1 more movement for Commander at a3
