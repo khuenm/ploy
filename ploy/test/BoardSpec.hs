@@ -87,26 +87,48 @@ spec = do
     it "does not move" $ do
         line (Pos {col='b', row=7}) (Pos {col='b', row=7}) `shouldBe` [Pos {col='b', row=7}]
 
-    it "left to right" $ do
+    it "horizontal movements" $ do
+        -- left to right
         line (Pos {col='b', row=7}) (Pos {col='e', row=7}) `shouldBe` [Pos {col='b', row=7},
                                                                        Pos {col='c', row=7},
                                                                        Pos {col='d', row=7},
                                                                        Pos {col='e', row=7}]
-
-    it "right to left" $ do
+        -- right to left
         line (Pos {col='e', row=7}) (Pos {col='b', row=7}) `shouldBe` [Pos {col='e', row=7},
                                                                        Pos {col='d', row=7},
                                                                        Pos {col='c', row=7},
                                                                        Pos {col='b', row=7}]
 
-    it "diagonal upper left to lower right" $ do
+    it "vertical movements" $ do
+        -- going up
+        line (Pos {col='b', row=4}) (Pos {col='b', row=7}) `shouldBe` [Pos {col='b', row=4},
+                                                                       Pos {col='b', row=5},
+                                                                       Pos {col='b', row=6},
+                                                                       Pos {col='b', row=7}]
+        -- going down
+        line (Pos {col='e', row=7}) (Pos {col='e', row=4}) `shouldBe` [Pos {col='e', row=7},
+                                                                       Pos {col='e', row=6},
+                                                                       Pos {col='e', row=5},
+                                                                       Pos {col='e', row=4}]
+
+    it "diagonal movements" $ do
+        -- upper left to lower right
         line (Pos {col='b', row=7}) (Pos {col='e', row=4}) `shouldBe` [Pos {col='b', row=7},
                                                                        Pos {col='c', row=6},
                                                                        Pos {col='d', row=5},
                                                                        Pos {col='e', row=4}]
-
-    it "diagonal upper right to lower left" $ do
+        -- upper right to lower left
         line (Pos {col='e', row=7}) (Pos {col='b', row=4}) `shouldBe` [Pos {col='e', row=7},
                                                                        Pos {col='d', row=6},
                                                                        Pos {col='c', row=5},
                                                                        Pos {col='b', row=4}]
+        -- lower left to upper right
+        line (Pos {col='b', row=4}) (Pos {col='e', row=7}) `shouldBe` [Pos {col='b', row=4},
+                                                                       Pos {col='c', row=5},
+                                                                       Pos {col='d', row=6},
+                                                                       Pos {col='e', row=7}]
+        -- lower right to upper left
+        line (Pos {col='e', row=4}) (Pos {col='b', row=7}) `shouldBe` [Pos {col='e', row=4},
+                                                                       Pos {col='d', row=5},
+                                                                       Pos {col='c', row=6},
+                                                                       Pos {col='b', row=7}]
