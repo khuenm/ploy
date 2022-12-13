@@ -35,6 +35,20 @@ toBinary n = _toBinary n
 toTuple3 :: [a] -> (a,a,a)
 toTuple3 [x,y,z] = (x,y,z)
 
+-- checks if the number respresenting a piece is the commander
+isCommander :: Int -> Bool
+isCommander n
+    | n < 1 || n > 255 = error "Number has to be between 1 and 255 to be converted to binary number"
+    | otherwise = sum (toBinary n) == 4
+
+-- get the maxinum number of fields a piece can move based on its number of possible movement directions
+getMaxNumMoves :: Int -> Int
+getMaxNumMoves n = (div n 4) + (mod n 4)
+
+-- get the corresponding cell in a board at a certain position
+getCell :: Board -> Pos -> Cell
+getCell b (Pos {col=c, row=r}) = b!!(9-r)!!((ord c)-97)
+
 -- #############################################################################
 -- ####################### gameFinished :: Board -> Bool #######################
 -- ####################### - 3 Functional Points         #######################
@@ -42,30 +56,22 @@ toTuple3 [x,y,z] = (x,y,z)
 -- #############################################################################
 
 gameFinished :: Board -> Bool
-gameFinished b = b & splitBlackWhite & map gameFinishedSingleTeam & foldr (||) False
-
-splitBlackWhite :: Board -> [[Int]]
-splitBlackWhite b = [fst blackWhite, snd blackWhite]
+gameFinished b = b & 
+                 foldr (++) [] & -- flatten Board to [Cell]
+                 splitBlackWhite &  -- split [Cell] to a tuple: first element is list of black pieces, second is white
+                 \tuple -> [fst tuple, snd tuple] & -- transform a tuple to list of two elements for easy map
+                 map gameFinishedSingleTeam & -- check if any team won
+                 foldr (||) False -- concatenate results
     where
-    blackWhite = _splitBlackWhite (foldr (++) [] b) -- Flatten Board to [Cell]
-    _splitBlackWhite :: [Cell] -> ([Int],[Int])
-    _splitBlackWhite [] = ([],[])
-    _splitBlackWhite (Empty : xb) = (fst (_splitBlackWhite xb), snd (_splitBlackWhite xb))
-    _splitBlackWhite ((Piece Black i) : xb) = (i : fst (_splitBlackWhite xb), snd (_splitBlackWhite xb))
-    _splitBlackWhite ((Piece White i) : xb) = (fst (_splitBlackWhite xb), i : snd (_splitBlackWhite xb))
+    splitBlackWhite :: [Cell] -> ([Int],[Int])
+    splitBlackWhite [] = ([],[])
+    splitBlackWhite (Empty : xb) = (fst (splitBlackWhite xb), snd (splitBlackWhite xb))
+    splitBlackWhite ((Piece Black i) : xb) = (i : fst (splitBlackWhite xb), snd (splitBlackWhite xb))
+    splitBlackWhite ((Piece White i) : xb) = (fst (splitBlackWhite xb), i : snd (splitBlackWhite xb))
 
-gameFinishedSingleTeam :: [Int] -> Bool
-gameFinishedSingleTeam [] = True
-gameFinishedSingleTeam xs = xs & map isCommander & _gameFinishedSingleTeam
-    where
-    _gameFinishedSingleTeam :: [Bool] -> Bool
-    _gameFinishedSingleTeam [] = True
-    _gameFinishedSingleTeam xs = ((length xs == 1) && head xs) || not (foldr (||) False xs)
-
-    isCommander :: Int -> Bool
-    isCommander n
-        | n < 1 || n > 255 = error "Number has to be between 1 and 255 to be converted to binary number"
-        | otherwise = sum (toBinary n) == 4
+    gameFinishedSingleTeam :: [Int] -> Bool
+    gameFinishedSingleTeam [] = True
+    gameFinishedSingleTeam xs = (length xs == 1 && isCommander (head xs)) || not (xs & map isCommander & foldr (||) False)
 
 
 -- #############################################################################
@@ -109,17 +115,11 @@ isValidMove b (Move {start=p1, target=p2, turn=t})
     validateNumMove :: Cell -> Int -> Int -> Bool
     validateNumMove Empty _ _ = error "First position cannot be empty"
     validateNumMove (Piece _ i) numMoves numTurn = numMoves < (cellBitPos & sum & getMaxNumMoves) && 
-                                             ((sum cellBitPos >= 1 && numTurn == 0) || sum cellBitPos == 1)
+                                                   ((sum cellBitPos > 1 && numTurn == 0) || sum cellBitPos == 1)
+                                                   -- Shield can turn after moving and the others not 
         where
         cellBitPos = toBinary i
         
--- get the maxinum number of fields a piece can move based on its number of possible movement directions
-getMaxNumMoves :: Int -> Int
-getMaxNumMoves n = (div n 4) + (mod n 4)
-
--- get the corresponding cell in a board at a certain position
-getCell :: Board -> Pos -> Cell
-getCell b (Pos {col=c, row=r}) = b!!(9-r)!!((ord c)-97)
 
 -- #############################################################################
 -- ################### possibleMoves :: Pos -> Cell -> [Move] ##################
@@ -145,7 +145,9 @@ generateAllMoves xs = xs & sum & getAllMoves & map toTuple3 & filterDirections (
                     ++ [[0,0,i] | i <- [1..7]]
 
     getPossibleDirections :: [Int] -> [[Int]]
-    getPossibleDirections xs = [tail x | x <- [[0,0,1],[1,1,1],[2,1,0],[3,1,-1],[4,0,-1],[5,-1,-1],[6,-1,0],[7,-1,1]], length xs > x!!0, xs!!(x!!0) /= 0]
+    getPossibleDirections xs = [tail x | x <- [[0,0,1],[1,1,1],[2,1,0],[3,1,-1],[4,0,-1],[5,-1,-1],[6,-1,0],[7,-1,1]], 
+                                         length xs > x!!0, 
+                                         xs!!(x!!0) /= 0]
 
     filterDirections :: [[Int]] -> [(Int,Int,Int)] -> [(Int,Int,Int)]
     filterDirections possibleDirections allMoves = [(c,r,t) | (c,r,t) <- allMoves, (elem [signum c, signum r] possibleDirections) || (c==0 && r==0)]
