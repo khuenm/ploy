@@ -82,6 +82,7 @@ gameFinished b = b &
 
 isValidMove :: Board -> Move -> Bool
 isValidMove b (Move {start=p1, target=p2, turn=t}) 
+    | t > 7 = error "Rotate more than 7 times is not allowed"
     | p1 == p2 = True
     | otherwise = validatePath b (paths & tail & init) &&
                   validateEndPos cell1 cell2 &&
@@ -109,12 +110,12 @@ isValidMove b (Move {start=p1, target=p2, turn=t})
         relativeMoveAround = [[7,0,1],[6,-1,2],[5,4,3]]
         Piece _ num = getCell b (Pos {col=c1, row=r1})
         cell1BitPos = toBinary num
-        directionIdx = relativeMoveAround!!((signum (r2-r1)+1))!!((signum (ord c2 - ord c1))+1)
+        directionIdx = relativeMoveAround!!(((-1)*signum (r2-r1)+1))!!((signum (ord c2 - ord c1))+1)
 
     -- checks for if the number of movements is allowed by the start cell
     validateNumMove :: Cell -> Int -> Int -> Bool
     validateNumMove Empty _ _ = error "First position cannot be empty"
-    validateNumMove (Piece _ i) numMoves numTurn = numMoves < (cellBitPos & sum & getMaxNumMoves) && 
+    validateNumMove (Piece _ i) numMoves numTurn = numMoves <= (cellBitPos & sum & getMaxNumMoves) && 
                                                    ((sum cellBitPos > 1 && numTurn == 0) || sum cellBitPos == 1)
                                                    -- Shield can turn after moving and the others not 
         where
