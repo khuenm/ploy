@@ -81,5 +81,29 @@ spec = do
 
     it "Valid movement of different pieces" $ do
         isValidMove unfinishedBoard (Move {start=Pos 'd' 7, target=Pos 'd' 6, turn=0}) `shouldBe` (True :: Bool)
+        isValidMove unfinishedBoard (Move {start=Pos 'd' 7, target=Pos 'd' 6, turn=1}) `shouldBe` (True :: Bool)
         isValidMove unfinishedBoard (Move {start=Pos 'c' 8, target=Pos 'c' 7, turn=0}) `shouldBe` (True :: Bool)
         isValidMove unfinishedBoard (Move {start=Pos 'c' 9, target=Pos 'b' 8, turn=0}) `shouldBe` (True :: Bool)
+
+  -- #################### isValidMove #########################
+  describe "Module Ploy: possibleMoves ..." $ do
+      it "Move empty cell" $
+          possibleMoves (Pos 'e' 5) Empty `shouldBe` []
+
+      context "Possible moves for each piece at the middle of the board" $ do
+          it "Shield" $ do
+              possibleMoves (Pos 'e' 5) (Piece White 16) `shouldBe` ([Move {start=Pos 'e' 5, target=Pos 'e' 4, turn=i} | i <- [0..7]] ++
+                                                                     [Move {start=Pos 'e' 5, target=Pos 'e' 5, turn=i} | i <- [1..7]])
+          it "Probe" $ do
+              length (possibleMoves (Pos 'e' 5) (Piece White 40)) `shouldBe` 11
+          it "Lance" $ do
+              length (possibleMoves (Pos 'e' 5) (Piece White 41)) `shouldBe` 16
+          it "Commander" $ do
+              length (possibleMoves (Pos 'e' 5) (Piece White 170)) `shouldBe` 8
+
+      it "Possible moves for pieces at the edge of the board" $ do
+          possibleMoves (Pos 'a' 1) (Piece White 16) `shouldBe` [Move {start=Pos 'a' 1, target=Pos 'a' 1, turn=i} | i <- [1..7]]
+          possibleMoves (Pos 'a' 2) (Piece White 40) `shouldBe` (Move {start=Pos 'a' 2, target=Pos 'b' 1, turn=0}) :
+                                                                [Move {start=Pos 'a' 2, target=Pos 'a' 2, turn=i} | i <- [1..7]]
+          length (possibleMoves (Pos 'c' 2) (Piece White 41)) `shouldBe` 12
+          length (possibleMoves (Pos 'e' 9) (Piece White 170)) `shouldBe` 6 

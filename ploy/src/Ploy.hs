@@ -130,20 +130,20 @@ isValidMove b (Move {start=p1, target=p2, turn=t})
 
 possibleMoves :: Pos -> Cell -> [Move]
 possibleMoves _ Empty = []
-possibleMoves p (Piece _ i) = i & toBinary & generateAllMoves & concatenateStartPos p
+possibleMoves p (Piece _ i) = i & generateAllMoves & concatenateStartPos p
 
 -- (col, row, turn)
-generateAllMoves :: [Int] -> [(Int,Int,Int)]
-generateAllMoves xs = xs & sum & getAllMoves & map toTuple3 & filterDirections (getPossibleDirections xs)
+generateAllMoves :: Int -> [(Int,Int,Int)]
+generateAllMoves i = cellBitPos & sum & getAllMoves i & map toTuple3 & filterDirections (getPossibleDirections cellBitPos)
     where
-    getAllMoves :: Int -> [[Int]]
-    getAllMoves 1 = [[a,b,c] | a <- [-1,0,1], b <- [-1,0,1], c <- [0,7], sum [a,b,c] > 0 || a /= b || b /= c] -- Shield
-    getAllMoves n = ([[a*i1,b*i2,0] | a <- [-1,0,1], 
+    cellBitPos = toBinary i
+    getAllMoves :: Int -> Int -> [[Int]]
+    getAllMoves _ 1 = [[a,b,c] | a <- [-1,0,1], b <- [-1,0,1], c <- [0..7], sum [a,b,c] > 0 || a /= b || b /= c] -- Shield
+    getAllMoves pieceNumEncoding n = ([[a*i,b*i,0] | a <- [-1,0,1], 
                                       b <- [-1,0,1], 
-                                      i1 <- [1..((div n 4)+(mod n 4))], 
-                                      i2 <- [1..((div n 4)+(mod n 4))]
+                                      i <- [1..((div n 4)+(mod n 4))]
                      ] & nub & delete [0,0,0])
-                    ++ [[0,0,i] | i <- [1..7]]
+                    ++ [[0,0,i] | i <- [1..7], rotate pieceNumEncoding i /= pieceNumEncoding]
 
     getPossibleDirections :: [Int] -> [[Int]]
     getPossibleDirections xs = [tail x | x <- [[0,0,1],[1,1,1],[2,1,0],[3,1,-1],[4,0,-1],[5,-1,-1],[6,-1,0],[7,-1,1]], 
